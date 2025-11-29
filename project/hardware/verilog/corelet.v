@@ -1,6 +1,5 @@
 // Corelet
 // Performs computation: L0 FIFO --> MAC Array --> OFIFO --> SFU
-// Created for ECE284 Project Part 1
 
 module corelet #(
     parameter bw = 4,
@@ -10,8 +9,8 @@ module corelet #(
 ) (
     input clk,
     input reset,
-    input [33:0] inst,              // bundled instructions from testbench
-    input [bw*row-1:0] D_xmem,      // data read of activation/weight SRAM
+    input [33:0] inst,                  // bundled instructions from testbench
+    input [bw*row-1:0] D_xmem,          // write data from testbench into xmem
     output [psum_bw*col-1:0] sfp_out,   // accumulate + ReLU result
     output ofifo_valid
 );
@@ -58,10 +57,10 @@ module corelet #(
     // -------------------------------------------------------------------------
     //  - create L0 block: buffers vectors from xmem, outputs them to MAC array
     // -------------------------------------------------------------------------
-    l0 #(               // parameters
+    l0 #(
         .row (row),
         .bw (bw)
-    ) l0_inst (         // ports
+    ) l0_inst (
         .clk (clk),
         .reset (reset),
         .in (D_xmem),
@@ -77,12 +76,12 @@ module corelet #(
     // --------------------------------------------------------------------------
     //  - creates 8x8 array of MAC tiles (PEs), performs convolution computation
     // --------------------------------------------------------------------------
-    mac_array #(                   // parameters
+    mac_array #(
         .bw (bw),
         .psum_bw (psum_bw),
         .col (col),
         .row (row)
-    ) mac_array_inst (      // ports
+    ) mac_array_inst (
         .clk (clk),
         .reset (reset),
         .out_s (mac_out),
@@ -98,10 +97,10 @@ module corelet #(
     //  - creates output FIFO, writes when MAC says outputs are valid
     //  - buffers psum vectors (fed into SFU at controlled pace)
     // -------------------------------------------------------------------------
-    ofifo #(            // parameters
+    ofifo #(
         .col (col),
         .bw (psum_bw)
-    ) ofifo_inst (      // ports
+    ) ofifo_inst (
         .clk (clk),
         .reset (reset),
         .wr (ofifo_wr), 
@@ -118,10 +117,10 @@ module corelet #(
     // --------------------------------------------------------------------------------
     //  - special function unit: receives PSUMs from OFIFO, performs accumulate + ReLU
     // --------------------------------------------------------------------------------
-    sfu #(                      // parameters
+    sfu #(
         .psum_bw (psum_bw),
         .col (col)
-    ) sfu_inst (                // ports
+    ) sfu_inst (
         .clk (clk),
         .reset (reset),
         .acc (acc),

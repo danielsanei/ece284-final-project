@@ -1,6 +1,5 @@
 // Special Function Unit (SFU)
 // Performs accumulation and ReLU operations
-// Created for ECE284 Project Part 1
 
 module sfu #(
     parameter psum_bw = 16,
