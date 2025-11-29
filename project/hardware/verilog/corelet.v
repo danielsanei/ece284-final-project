@@ -119,7 +119,8 @@ module corelet #(
     //  - special function unit: receives PSUMs from OFIFO, performs accumulate + ReLU
     // --------------------------------------------------------------------------------
     sfu #(                      // parameters
-        .psum_bw (psum_bw)
+        .psum_bw (psum_bw),
+        .col (col)
     ) sfu_inst (                // ports
         .clk (clk),
         .reset (reset),

@@ -2,45 +2,60 @@
 // Performs accumulation and ReLU operations
 // Created for ECE284 Project Part 1
 
-// TODO --> NEEDS CORRECTION
-// currently, sfu.v only processes 1 single output channel out of the 1, 2, ... 8 lanes from MAC array output
-// where each of these output channels performs 3x3 convolution
-// so only doing accumulate + ReLU for a single output channel, but there are 7 other output channels
-// need to wrap current code in a loop to process all output channels, each output channel must produce its own PSUM
-
 module sfu #(
-    parameter psum_bw = 16
+    parameter psum_bw = 16,
+    parameter col = 8
 ) (
     input clk,
     input reset,
-    input acc,                              // accumulation enable signal
-    input signed [psum_bw-1:0] psum_in,     // partial sum input from psum memory
-    output reg [psum_bw-1:0] sfp_out        // final output after acc + ReLU
+    input acc,                                  // accumulation enable signal
+    input signed [psum_bw*col-1:0] psum_in,     // PSUM inputs from OFIFO
+    output reg [psum_bw*col-1:0] sfp_out        // final output after acc + ReLU
 );
     
-    // hardware components (2's complement)
-    reg signed [psum_bw-1:0] accumulator;
-    wire signed [psum_bw-1:0] relu_out;
+    // hardware components (2's complement) for each lane (output channel x8)
+    reg signed [psum_bw-1:0] accumulator [0:col-1];
+    wire signed [psum_bw-1:0] psum_lanes [0:col-1];
+
+    // create, wire 8 lanes for each PSUM
+    genvar g;
+    generate
+        for (g = 0; g < col; g = g + 1) begin : GEN_LANES
+            assign psum_lanes[g] = psum_in[psum_bw*(g+1)-1 : psum_bw*g];
+        end
+    endgenerate
     
     // take sum + ReLU of partial sums
+    integer i;
     always @(posedge clk) begin
-        // reset signal
+        // clear accumulators, outputs
         if (reset) begin
-            accumulator <= 0;
-            sfp_out <= 0;
+            for (i = 0; i < col; i = i + 1) begin
+                accumulator[i] <= {psum_bw{1'b0}};
+                sfp_out[psum_bw*(i+1)-1 : psum_bw*i] <= {psum_bw{1'b0}};
+            end
         end
         // accumulate (add current psum to running total)
         else if (acc) begin
-            accumulator <= accumulator + psum_in;
+            for (i = 0; i < col; i = i + 1) begin
+                accumulator[i] <= accumulator[i] + psum_lanes[i];
+            end
         end
         // apply ReLU, reset accumulator for next set
         else begin
-            sfp_out <= relu_out;
-            accumulator <= 0;
+            for (i = 0; i < col; i = i + 1) begin
+                // check for negative value (MSB=1), ReLU sets lane to zero
+                if (accumulator[i][psum_bw-1] == 1'b1) begin
+                    sfp_out[psum_bw*(i+1)-1 : psum_bw*i] <= {psum_bw{1'b0}};
+                end
+                // keep output as current accumulator (positive value)
+                else begin
+                    sfp_out[psum_bw*(i+1)-1 : psum_bw*i] <= accumulator[i];
+                end
+                // clear accumulator once finished with current set of ReLU
+                accumulator[i] <= {psum_bw{1'b0}};
+            end
         end
     end
-    
-    // ReLU: if negative (MSB=1 in 2's complement), output 0
-    assign relu_out = accumulator[psum_bw-1] ? 0 : accumulator;
 
 endmodule
