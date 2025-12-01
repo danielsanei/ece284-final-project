@@ -18,7 +18,7 @@ module mac_row (clk, out_s, in_w, in_n, valid, inst_w, reset);
   assign temp[bw-1:0] = in_w;
 
   // instruction propagation (left to right)
-  wire [2*(col+1)*bw-1:0] inst_temp;    // bus is connection between PEs (2 bits per tile)
+  wire [2*(col+1)-1:0] inst_temp;    // bus is connection between PEs (2 bits per tile)
   assign inst_temp[1:0] = inst_w;
 
   // for each row, instantiate all tiles (PEs)
@@ -36,8 +36,9 @@ module mac_row (clk, out_s, in_w, in_n, valid, inst_w, reset);
   	);
 
   	// set valid bit (output data is ready to be sent, avoid sending every clock cycle when not ready)
-  	assign valid[i-1] = inst_temp[2*i];
+    // 2*i is inst_e[0]
+    // 2*i+1 is inst_e[1]
+  	assign valid[i-1] = inst_temp[2*i+1];
   end
 
 endmodule
-

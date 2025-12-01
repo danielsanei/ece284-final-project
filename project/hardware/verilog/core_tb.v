@@ -196,16 +196,48 @@ initial begin
     #0.5 clk = 1'b1; 
     /////////////////////////////////////
 
-
-
+  // SRAM to L0
+  // SRAM data => L0 in
+  // |   |   |      |
+// A_x CEN  WEN    l0_wr
+ 
     /////// Kernel data writing to L0 ///////
+    // prime SRAM and delay by a cycle, wr first addr to sram
+    #0.5 clk = 1'b0;
+    CEN_xmem = 0; // turn on SRAM
+    WEN_xmem = 1; // read out mode
+    A_xmem = 11'b10000000000;
+    l0_wr = 0;
+    #0.5 clk = 1'b1; 
+
     for (t=0; t<col; t=t+1) begin
-    	#0.5 clk = 1'b0; CEN_xmem = 0; WEN_xmem = 1; A_xmem = 11'b10000000000 + t[10:0]; l0_wr = 1;
-	#0.5 clk = 1'b1;
+      #0.5 clk = 1'b0;
+      // Capture data from prev cycle req -> SRAM has 1 cycle delay
+      l0_wr = 1;
+      // prep addrs
+      if (t<col-1) begin
+        A_xmem = A_xmem + 1;
+      end else begin
+        CEN_xmem = 1; // turn sram off once all KERNEL addrs read
+      end
+
+      #0.5 clk = 1'b1;
     end
 
-    #0.5 clk = 1'b0; l0_wr = 0; CEN_xmem = 1; WEN_xmem = 1;
+    // turn off L0
+    #0.5 clk = 1'b0;
+    l0_wr = 0;
+    CEN_xmem = 1;
+    WEN_xmem = 1;
     #0.5 clk = 1'b1;
+
+  //   for (t=0; t<col; t=t+1) begin
+  //   	#0.5 clk = 1'b0; CEN_xmem = 0; WEN_xmem = 1; A_xmem = 11'b10000000000 + t[10:0]; l0_wr = 1;
+	// #0.5 clk = 1'b1;
+  //   end
+
+  //   #0.5 clk = 1'b0; l0_wr = 0; CEN_xmem = 1; WEN_xmem = 1;
+  //   #0.5 clk = 1'b1;
     /////////////////////////////////////
 
 
@@ -236,14 +268,42 @@ initial begin
 
 
     /////// Activation data writing to L0 ///////
+    // turn on SRAM and establish first first sram addr to send to l0
+    #0.5 clk = 1'b0;
+    CEN_xmem = 0;
+    WEN_xmem = 1;
     A_xmem = 11'b00000000000;
-    for (t=0; t<len_nij; t=t+1) begin
-    	#0.5 clk = 1'b0; CEN_xmem = 0; WEN_xmem = 1; l0_wr = 1;
-	#0.5 clk = 1'b1; A_xmem = A_xmem + 1;
+    l0_wr = 0;
+    #0.5 clk = 1'b1;
+
+    // loop addrs sent to l0
+    for (t=0; t < len_nij; t=t+1) begin
+      #0.5 clk = 1'b0;
+      // establish l0
+      l0_wr = 1;
+      // next addr
+      if (t < len_nij - 1) begin
+        A_xmem = A_xmem + 1;
+      end else begin
+        CEN_xmem = 1;
+      end
+      #0.5 clk = 1'b1;
     end
 
-    #0.5 clk = 1'b0; l0_wr = 0; CEN_xmem = 1; WEN_xmem = 1;
+    // turn off SRAM
+    #0.5 clk = 1'b0;
+    l0_wr = 0;
+    CEN_xmem = 1;
+    WEN_xmem = 1;
     #0.5 clk = 1'b1;
+
+  //   for (t=0; t<len_nij; t=t+1) begin
+  //   	#0.5 clk = 1'b0; CEN_xmem = 0; WEN_xmem = 1; l0_wr = 1;
+	// #0.5 clk = 1'b1; A_xmem = A_xmem + 1;
+  //   end
+
+  //   #0.5 clk = 1'b0; l0_wr = 0; CEN_xmem = 1; WEN_xmem = 1;
+  //   #0.5 clk = 1'b1;
     /////////////////////////////////////
 
 
