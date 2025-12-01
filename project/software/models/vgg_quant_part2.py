@@ -9,7 +9,7 @@ from models.quant_layer_part_2 import *
 cfg = {
     'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-    'VGG16_quant_part2': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M',512, 16, 512, 'M', 512, 512, 512, 'M'],
+    'VGG16_quant_part2': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 16, 512, 'M', 512, 512, 512, 'M'],
     'VGG16': ['F', 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
 }
@@ -40,6 +40,9 @@ class VGG_quant_part2(nn.Module):
                 in_channels = 64
             elif x == 16:
                 layers += [QuantConv2d(in_channels, 16, kernel_size=3, padding=1),
+                           nn.BatchNorm2d(x),
+                           nn.ReLU(inplace=True),
+                           QuantConv2d(16, 16, kernel_size=3, padding=1),
                            nn.ReLU(inplace=True)]
                 in_channels = 16
             else:
