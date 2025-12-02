@@ -2,3 +2,7 @@
 # use '/' prefix = root-level directories only
 /software/
 /hardware/
+
+# ignore files generated from compilation/simulation
+/project/hardware/core_tb.out
+/project/hardware/core_tb.vcd
