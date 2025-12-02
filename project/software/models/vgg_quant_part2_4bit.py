@@ -15,9 +15,9 @@ cfg = {
 }
 
 
-class VGG16_quant_part2_4bit(nn.Module):
+class VGG16_quant_part2_4(nn.Module):
     def __init__(self, vgg_name):
-        super(VGG16_quant_part2_4bit, self).__init__()
+        super(VGG16_quant_part2_4, self).__init__()
         self.features = self._make_layers(cfg[vgg_name])
         self.classifier = nn.Linear(512, 10)
 
@@ -59,6 +59,6 @@ class VGG16_quant_part2_4bit(nn.Module):
                 m.show_params()
     
 
-def VGG_quant_part2_4bit(**kwargs):
-    model = VGG16_quant_part2_4bit(vgg_name = 'VGG16_quant_part2_4bit', **kwargs)
+def VGG16_quant_part2_4bit(**kwargs):
+    model = VGG16_quant_part2_4(vgg_name = 'VGG16_quant_part2_4bit', **kwargs)
     return model

@@ -2,22 +2,22 @@
 import torch
 import torch.nn as nn
 import math
-from models.quant_layer_part_2 import *
+from models.quant_layer_part2_2bit import *
 
 
 
 cfg = {
     'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-    'VGG16_quant_part2': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 16, 512, 'M', 512, 512, 512, 'M'],
+    'VGG16_quant_part2_2bit': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 16, 512, 'M', 512, 512, 512, 'M'],
     'VGG16': ['F', 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
 }
 
 
-class VGG_quant_part2(nn.Module):
+class VGG16_quant_part2_2(nn.Module):
     def __init__(self, vgg_name):
-        super(VGG_quant_part2, self).__init__()
+        super(VGG16_quant_part2_2, self).__init__()
         self.features = self._make_layers(cfg[vgg_name])
         self.classifier = nn.Linear(512, 10)
 
@@ -59,6 +59,6 @@ class VGG_quant_part2(nn.Module):
                 m.show_params()
     
 
-def VGG16_quant_part2(**kwargs):
-    model = VGG_quant_part2(vgg_name = 'VGG16_quant_part2', **kwargs)
+def VGG16_quant_part2_2bit(**kwargs):
+    model = VGG16_quant_part2_2(vgg_name = 'VGG16_quant_part2_2bit', **kwargs)
     return model
