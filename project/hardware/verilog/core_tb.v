@@ -387,45 +387,35 @@ initial begin
 
 
   for (i=0; i<len_onij+1; i=i+1) begin 
+    // assert read accumulate
+    wait(ofifo_valid);
 
-    // reset per output
-    #0.5 clk = 1'b0; reset = 1; acc = 0; ofifo_rd = 0;
-    #0.5 clk = 1'b1; 
-    #0.5 clk = 1'b0; reset = 0;
-    #0.5 clk = 1'b1; 
-    
-    for (i=0; i <len_onij; i=i+1) begin
-      for (j=0; j<len_kij; j=j+1) begin // accum 9 per output
-        #0.5 clk = 1'b0;
-        // control accum
-        if (j < len_kij - 1) // one cycle short cutoff
-          acc = 1;
-        else
-          acc = 0;
+    #0.5 clk = 1'b0;
+    ofifo_rd = 1;
+    acc = 1;
+    #0.5 clk = 1'b1;
+    //read in one vector per loop it
+    #0.5 clk = 1'b0;
+    ofifo_rd = 0;
+    acc = 0;
+    #0.5 clk = 1'b1;
+    // // flush and relu
+    // #0.5 clk = 1'b0;
+    // acc = 0;
+    // #0.5 clk = 1'b1;
+    // wait + calc
+    #0.5 clk = 1'b0; #0.5 clk = 1'b1;
+    #0.5 clk = 1'b0; #0.5 clk = 1'b1;
 
-        // read from ofifo to feed sfu
-        ofifo_rd = 1;
-
-        if (j<len_kij) begin CEN_pmem = 0; WEN_pmem = 1; acc_scan_file = $fscanf(acc_file,"%11b", A_pmem); end
-        else  begin CEN_pmem = 1; WEN_pmem = 1; end
-
-        #0.5 clk = 1'b1;
-      end
-
-      #0.5 clk = 1'b0; ofifo_rd = 0; #0.5 clk = 1'b1; // safe cycle
-
-      out_scan_file = $fscanf(out_file,"%128b", answer); // reading from out file to answer
-      if (sfp_out == answer)
-          $display("%2d-th output featuremap Data matched! :D", i); 
-      else begin
-        $display("%2d-th output featuremap Data ERROR!!", i); 
-        $display("sfpout: %128b", sfp_out);
-        $display("answer: %128b", answer);
-        error = 1;
-      end
-
+    out_scan_file = $fscanf(out_file,"%128b", answer); // reading from out file to answer
+    if (sfp_out == answer)
+      $display("%2d-th output featuremap Data matched! :D", i); 
+    else begin
+      $display("%2d-th output featuremap Data ERROR!!", i); 
+      $display("sfpout: %128b", sfp_out);
+      $display("answer: %128b", answer);
+      error = 1;
     end
-    
 
     // if (i>0) begin
     //  out_scan_file = $fscanf(out_file,"%128b", answer); // reading from out file to answer
@@ -440,23 +430,23 @@ initial begin
     // end
    
  
-    #0.5 clk = 1'b0; reset = 1;
-    #0.5 clk = 1'b1;  
-    #0.5 clk = 1'b0; reset = 0; 
-    #0.5 clk = 1'b1;  
+    // #0.5 clk = 1'b0; reset = 1;
+    // #0.5 clk = 1'b1;  
+    // #0.5 clk = 1'b0; reset = 0; 
+    // #0.5 clk = 1'b1;  
 
-    for (j=0; j<len_kij+1; j=j+1) begin 
+    // for (j=0; j<len_kij+1; j=j+1) begin 
 
-      #0.5 clk = 1'b0;   
-        if (j<len_kij) begin CEN_pmem = 0; WEN_pmem = 1; acc_scan_file = $fscanf(acc_file,"%11b", A_pmem); end
-                       else  begin CEN_pmem = 1; WEN_pmem = 1; end
+    //   #0.5 clk = 1'b0;   
+    //     if (j<len_kij) begin CEN_pmem = 0; WEN_pmem = 1; acc_scan_file = $fscanf(acc_file,"%11b", A_pmem); end
+    //                    else  begin CEN_pmem = 1; WEN_pmem = 1; end
 
-        if (j>0)  acc = 1;  
-      #0.5 clk = 1'b1;   
-    end
+    //     if (j>0)  acc = 1;  
+    //   #0.5 clk = 1'b1;   
+    // end
 
-    #0.5 clk = 1'b0; acc = 0;
-    #0.5 clk = 1'b1; 
+    // #0.5 clk = 1'b0; acc = 0;
+    // #0.5 clk = 1'b1; 
   end
 
 
