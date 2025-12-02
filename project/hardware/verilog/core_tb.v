@@ -254,7 +254,9 @@ initial begin
 
 
     /////// Kernel loading to PEs ///////
-    for (t=0; t<8*len_kij; t=t+1) begin
+    // 4bits change at a time with l0
+    // 32/4 * len_kij loop for skewed inputs
+    for (t=0; t<col*len_kij; t=t+1) begin
       #0.5 clk = 1'b0; load = 1; l0_rd = 1;
       #0.5 clk = 1'b1;
     end
@@ -320,7 +322,7 @@ initial begin
 
 
     /////// Execution ///////
-    for (t=0; t<len_onij; t=t+1) begin
+    for (t=0; t<row*len_nij; t=t+1) begin
     	#0.5 clk = 1'b0; execute = 1; l0_rd = 1;
 	#0.5 clk = 1'b1;
     end
