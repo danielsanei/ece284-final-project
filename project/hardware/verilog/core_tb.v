@@ -256,7 +256,7 @@ initial begin
     /////// Kernel loading to PEs ///////
     // 4bits change at a time with l0
     // 32/4 * len_kij loop for skewed inputs
-    for (t=0; t<col*len_kij; t=t+1) begin
+    for (t=0; t<col; t=t+1) begin
       #0.5 clk = 1'b0; load = 1; l0_rd = 1;
       #0.5 clk = 1'b1;
     end
@@ -319,10 +319,13 @@ initial begin
   //   #0.5 clk = 1'b1;
     /////////////////////////////////////
 
-
+  #0.5 clk = 1'b0;
+  l0_rd = 1;
+  execute = 0;
+  #0.5 clk = 1'b1;
 
     /////// Execution ///////
-    for (t=0; t<(row+col)*len_nij + 10; t=t+1) begin
+    for (t=0; t<col*len_nij + col; t=t+1) begin
     	#0.5 clk = 1'b0; execute = 1; l0_rd = 1;
 	#0.5 clk = 1'b1;
     end
@@ -339,23 +342,25 @@ initial begin
   // read out to and accum in sfu 16 times
     // wait 1 clk cycle for valid out
     #0.5 clk = 1'b0;
+    acc = 0;
     ofifo_rd = 1;
     #0.5 clk = 1'b1;
     t=0;
-    while (t < len_onij) begin
-      #0.5 clk = 1'b0; ofifo_rd = 0;
+    while (t < len_onij + 2) begin // 2 cycle delay
+      #0.5 clk = 1'b0; 
       if (ofifo_valid) begin
         ofifo_rd = 1; acc = 1;
         t = t + 1;
       end
       else begin
         ofifo_rd = 0;
+        acc = 0;
       end
       #0.5 clk = 1'b1;
     end
 
     #0.5 clk = 1'b0; ofifo_rd = 0; acc = 0;
-    #0.5 clk = 1'b1;
+    
     /////////////////////////////////////
 
 

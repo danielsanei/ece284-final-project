@@ -1,6 +1,6 @@
 // Created by prof. Mingu Kang @VVIP Lab in UCSD ECE department
 // Please do not spread this code without permission 
-module l0 (clk, in, out, rd, wr, o_full, reset, o_ready);
+module l0 (clk, in, out, rd, wr, o_full, reset, o_ready, cascade);
 
   parameter row  = 8;
   parameter bw = 4;
@@ -9,6 +9,7 @@ module l0 (clk, in, out, rd, wr, o_full, reset, o_ready);
   input  wr;
   input  rd;
   input  reset;
+  input cascade;
   input  [row*bw-1:0] in;
   output [row*bw-1:0] out;
   output o_full;
@@ -29,7 +30,7 @@ module l0 (clk, in, out, rd, wr, o_full, reset, o_ready);
         fifo_depth64 #(.bw(bw)) fifo_instance (
     .rd_clk(clk),
     .wr_clk(clk),
-    .rd(rd & rd_en[i]),
+    .rd((cascade ? rd & rd_en[i] : rd)),
     .wr(wr),
           .o_empty(empty[i]),
           .o_full(full[i]),
@@ -63,10 +64,25 @@ module l0 (clk, in, out, rd, wr, o_full, reset, o_ready);
         if (reset) begin
       	  rd_en <= 8'b00000001;                  // start from row 0
         end else begin
-      	  if (rd) begin                          // on a read request
-            rd_en <= {rd_en[6:0], rd_en[7]};     // rotate one-hot left
-          end else begin
-            rd_en <= rd_en;                      // keep last active row
+          if (cascade) begin
+            if (rd_en == 8'b00000000 || rd_en == 8'b11111111) begin // check for non-cascade residual
+              if (rd) rd_en <= 8'b00000010;
+              else rd_en <= 8'b00000001;
+            end
+            else begin
+              if (rd) begin                          // on a read request
+                rd_en <= {rd_en[6:0], rd_en[7]};     // rotate one-hot left
+              end else begin
+                rd_en <= rd_en;                      // keep last active row
+              end
+            end
+          end
+          else begin
+            if (rd) begin   		 // read request signal
+              rd_en <= {row{1'b1}};    // read all 8 rows
+            end else begin
+              rd_en <= 8'b00000000;
+            end
           end
         end
        end

@@ -64,7 +64,8 @@ module corelet #(
         .wr (l0_wr),
         .out (l0_out),
         .o_full (l0_o_full),
-        .o_ready (l0_o_ready)
+        .o_ready (l0_o_ready),
+        .cascade(~load) // cascading only if not loading weights
     );
 
     // --------------------------------------------------------------------------
