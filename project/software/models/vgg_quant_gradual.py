@@ -11,13 +11,15 @@ cfg = {
     'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     # Original sudden squeeze: 512 -> 8 -> 512
     'VGG16_quant': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 8, 512, 'M', 512, 512, 512, 'M'],
-    # Gradual squeeze: 512 -> 128 -> 32 -> 8 -> 32 -> 128 -> 512
-    'VGG16_quant_gradual': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 128, 32, 8, 32, 128, 512, 'M', 512, 512, 512, 'M'],
+    # Gradual squeeze: 512 -> 128 -> 32 -> 8 -> 8 -> 32 -> 128 -> 512 (with 8->8 layer, no batch norm)
+    # 'F' marks first layer as non-quantized (regular Conv2d)
+    # 'B' marks the start of bottleneck region
+    'VGG16_quant_gradual': [64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 'B', 128, 32, 8, 8, 32, 128, 512, 'M', 512, 512, 512, 'M'],
     'VGG16': ['F', 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
 }
 
-# Bottleneck channel sizes for special handling
+# Bottleneck channel sizes for special handling (only used after 'B' marker)
 BOTTLENECK_CHANNELS = {8, 32, 128}  # Channels in the squeeze/expand path
 
 
@@ -36,45 +38,48 @@ class VGG_quant_gradual(nn.Module):
     def _make_layers(self, cfg):
         layers = []
         in_channels = 3
-        # Track if we're in the bottleneck region (between first 512 and next 512 after squeeze)
+        # Track if we're in the bottleneck region (after 'B' marker)
         in_bottleneck = False
         
         for i, x in enumerate(cfg):
             if x == 'M':
                 layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
-            elif x == 'F':  # This is for the 1st layer
+            elif x == 'F':  # This is for the 1st layer (non-quantized)
                 layers += [nn.Conv2d(in_channels, 64, kernel_size=3, padding=1, bias=False),
                            nn.BatchNorm2d(64),
                            nn.ReLU(inplace=True)]
                 in_channels = 64
-            elif x in BOTTLENECK_CHANNELS:
-                # Bottleneck layers - use ReLU without BatchNorm for the squeeze path
-                # Check if we're squeezing down (current > x) or expanding (current < x)
+            elif x == 'B':  # Marker for start of bottleneck region
+                in_bottleneck = True
+            elif in_bottleneck and x in BOTTLENECK_CHANNELS:
+                # Bottleneck layers - minimal batch norm for squeeze path
                 if in_channels > x:
-                    # Squeezing down
-                    in_bottleneck = True
+                    # Squeezing down - no batch norm
                     layers += [QuantConv2d(in_channels, x, kernel_size=3, padding=1),
+                               nn.BatchNorm2d(x),
                                nn.ReLU(inplace=True)]
                 elif in_channels < x:
                     # Expanding back up
                     layers += [QuantConv2d(in_channels, x, kernel_size=3, padding=1),
                                nn.ReLU(inplace=True)]
-                    if x >= 128:  # Add BatchNorm when expanding back to larger sizes
-                        # Remove the ReLU we just added and add BN+ReLU instead
+                    if x > 8:  # Add BatchNorm when expanding back to larger sizes
                         layers.pop()  # Remove ReLU
                         layers += [nn.BatchNorm2d(x),
                                    nn.ReLU(inplace=True)]
                 else:
-                    # Same size - just regular conv
+                    # Same size (8->8) - no batch norm
                     layers += [QuantConv2d(in_channels, x, kernel_size=3, padding=1),
                                nn.ReLU(inplace=True)]
                 in_channels = x
             else:
+                # Regular layers with batch norm
+                if in_bottleneck and x == 512:
+                    # Exiting bottleneck region when we reach 512 again
+                    in_bottleneck = False
                 layers += [QuantConv2d(in_channels, x, kernel_size=3, padding=1),
                            nn.BatchNorm2d(x),
                            nn.ReLU(inplace=True)]
                 in_channels = x
-                in_bottleneck = False
                 
         layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
         return nn.Sequential(*layers)
