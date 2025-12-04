@@ -6,57 +6,59 @@ module ofifo (clk, in, out, rd, wr, o_full, reset, o_ready, o_valid);
   parameter bw = 4;
 
   input  clk;
-  input  [col-1:0] wr;		// 8-bit vector, per column (write enable)
-  input  rd;			// read request (read from all FIFOs at once)
+  input  [col-1:0] wr;
+  input  rd;
   input  reset;
-  input  [col*bw-1:0] in;	// 32-bit input (8 columns * 4 bits each)
-  output [col*bw-1:0] out;	// 32-bit output
-  output o_full;		// if any FIFO is full
-  output o_ready;		// if all FIFOs have room
-  output o_valid;		// all columns have at least 1 data word (ready to read)
+  input  [col*bw-1:0] in;
+  output [col*bw-1:0] out;
+  output o_full;
+  output o_ready;
+  output o_valid;
 
-  wire [col-1:0] empty;		// 8-bit vector for each column
-  wire [col-1:0] full;		// 8-bit vector for each column
-  reg  rd_en;			// internal register (read all columns)
+  wire [col-1:0] empty;
+  wire [col-1:0] full;
+  reg [col-1:0] rd_en = 0;
   
   genvar i;
 
-  assign o_ready = |(~full);	// not all columns full (at least 1 has room)
-  assign o_full  = |full;	// at least 1 column is full
-  assign o_valid = ~empty[col-1];	// at least one full vector is ready (not all empty)
+  assign o_ready = ~(full[0] | full[1] | full[2] | full[3] | full[4] | full[5] | full[6] | full[7]) ;
+  assign o_full  = full[0] | full[1] | full[2] | full[3] | full[4] | full[5] | full[6] | full[7];
+  assign o_valid = ~(empty[0] | empty[1] | empty[2] | empty[3] | empty[4] | empty[5] | empty[6] | empty[7]);
 
-  generate     // wrap in generate block
-    for (i=0; i<col ; i=i+1) begin : col_num
-        fifo_depth64 #(.bw(bw)) fifo_instance (
-    .rd_clk(clk),
-    .wr_clk(clk),
-    .rd(rd_en),
-    .wr(wr[i]),		// each col has its own write enable
-          .o_empty(empty[i]),
-          .o_full(full[i]),
-    .in(in[bw*(i+1)-1:bw*i]),
-    .out(out[bw*(i+1)-1:bw*i]),
-          .reset(reset));
-    end
+  generate
+  for (i=0; i<col ; i=i+1) begin : col_num
+      fifo_depth64 #(.bw(bw)) fifo_instance (
+     .rd_clk(clk),
+     .wr_clk(clk),
+     .rd(rd_en[i]),
+     .wr(wr[i]),
+         .o_empty(empty[i]),
+         .o_full(full[i]),
+     .in(in[(i+1)*bw-1:i*bw]),
+     .out(out[(i+1)*bw-1:i*bw]),
+         .reset(reset));
+  end
   endgenerate
 
 
   always @ (posedge clk) begin
    if (reset) begin
-      rd_en <= 0;
+      rd_en <= 8'b00000000;
    end
-   else
-      
-     // read all columns at once
-     if (rd) begin
-	     rd_en <= 1'b1;
-     end else begin
-	     rd_en <= 1'b0;
-     end
- 
+   else begin
+      if(rd==1) begin
+        rd_en <= 8'b11111111;
+      end
+      else begin
+        rd_en <= 8'b00000000;
+      end
+   end
   end
 
 
  
 
 endmodule
+
+
+

@@ -222,15 +222,16 @@ initial begin
       #0.5 clk = 1'b1;
     end
 
-    // iteration v3
-    // load in 0x407
-    #0.5 clk = 1'b0;
-    l0_wr = 1;
-    CEN_xmem = 1; // turn off SRAM but get its last output
-    #0.5 clk = 1'b1;
+    // // iteration v3
+    // // load in 0x407
+    // #0.5 clk = 1'b0;
+    // l0_wr = 1;
+    // CEN_xmem = 1; // turn off SRAM but get its last output
+    // #0.5 clk = 1'b1;
 
     // full l0 off
     #0.5 clk = 1'b0;
+    CEN_xmem = 1;
     l0_wr = 0;
     #0.5 clk = 1'b1;
 
@@ -255,8 +256,8 @@ initial begin
 
     /////// Kernel loading to PEs ///////
     // 4bits change at a time with l0
-    // 32/4 * len_kij loop for skewed inputs
-    for (t=0; t<col; t=t+1) begin
+    // skew shift in row+col len_kij loop for skewed inputs
+    for (t=0; t<col+row; t=t+1) begin
       #0.5 clk = 1'b0; load = 1; l0_rd = 1;
       #0.5 clk = 1'b1;
     end
@@ -319,13 +320,13 @@ initial begin
   //   #0.5 clk = 1'b1;
     /////////////////////////////////////
 
-  #0.5 clk = 1'b0;
-  l0_rd = 1;
-  execute = 0;
-  #0.5 clk = 1'b1;
+  // #0.5 clk = 1'b0;
+  // l0_rd = 1;
+  // execute = 0;
+  // #0.5 clk = 1'b1;
 
-    /////// Execution ///////
-    for (t=0; t<col*len_nij + col; t=t+1) begin
+    /////// Execution /////// ~36 cycles
+    for (t=0; t<row+col+len_nij; t=t+1) begin // stream inputs in (pipeline) + row+col (prop across array)
     	#0.5 clk = 1'b0; execute = 1; l0_rd = 1;
 	#0.5 clk = 1'b1;
     end
@@ -493,6 +494,9 @@ always @ (posedge clk) begin
    execute_q  <= execute;
    load_q     <= load;
 end
+
+
+
 
 
 endmodule
