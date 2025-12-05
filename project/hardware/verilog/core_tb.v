@@ -340,6 +340,12 @@ initial begin
 
 
 
+
+  // 201 ps at this point
+    // sfp_out should write to PMEM each 1 cycle
+    // (some repeats take 2 cycles) ?
+
+
   //   ////// OFIFO READ ////////
   //   Ideally, OFIFO should be read while execution, but we have enough ofifo
   //   depth so we can fetch out after execution.

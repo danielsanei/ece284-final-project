@@ -48,7 +48,7 @@ module sfu #(
             // bypass (storing PSUMs from OFIFO into PMEM)
             if (bypass) begin
                 for (i=0; i < col; i = i +1) begin
-                    sfp_out[psum_bw*i +: psum_bw] <= next_sum[i];
+                    sfp_out[psum_bw*i +: psum_bw] <= psum_lanes[i];
                 end
             end
             else if (acc) begin
