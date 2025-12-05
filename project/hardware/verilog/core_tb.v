@@ -66,6 +66,9 @@ integer captured_data;
 integer t, i, j, k, kij;
 integer error;
 
+integer nij_idx;
+
+
 assign inst_q[33] = acc_q;
 assign inst_q[32] = CEN_pmem_q;
 assign inst_q[31] = WEN_pmem_q;
@@ -346,25 +349,34 @@ initial begin
     // acc = 0;
     // ofifo_rd = 1;
     // #0.5 clk = 1'b1;
+    
+    nij_idx = 0;
+
     #0.5 clk = 1'b0;
-    acc = 0;
     ofifo_rd = 1;
+    CEN_pmem = 0;
+    WEN_pmem = 0;
+    A_pmem = kij * 16;
     #0.5 clk = 1'b1;
+
     t=0;
     while (t < len_onij) begin // 2 cycle delay
       #0.5 clk = 1'b0; 
+      
       if (ofifo_valid) begin
-        ofifo_rd = 1; acc = 1;
+        ofifo_rd = 1;
+	A_pmem = kij*16 + nij_idx;
+	nij_idx = nij_idx + 1;
         t = t + 1;
       end
       else begin
         ofifo_rd = 0;
-        acc = 0;
       end
+      
       #0.5 clk = 1'b1;
     end
 
-    #0.5 clk = 1'b0; ofifo_rd = 0; acc = 0; #0.5 clk = 1'b1;
+    #0.5 clk = 1'b0; ofifo_rd = 0; CEN_pmem = 1; WEN_pmem = 1; #0.5 clk = 1'b1;
     
     /////////////////////////////////////
 
@@ -395,7 +407,7 @@ initial begin
   $display("############ Verification Start during accumulation #############"); 
 
 
-
+/*
   for (i=0; i<len_onij; i=i+1) begin 
     // assert read accumulate
     wait(ofifo_valid);
@@ -416,10 +428,52 @@ initial begin
     // wait + calc
     #0.5 clk = 1'b0; #0.5 clk = 1'b1;
     #0.5 clk = 1'b0; #0.5 clk = 1'b1;
+*/
+
+/*
+    #0.5 clk = 1'b0; reset = 1;
+    #0.5 clk = 1'b1;  
+    #0.5 clk = 1'b0; reset = 0; 
+    #0.5 clk = 1'b1;*/  
+
+
+   for (i = 0; i < len_onij; i = i + 1) begin
+    for (j=0; j<len_kij; j=j+1) begin 
+       #0.5 clk = 1'b0;   
+       if (j<len_kij) begin 
+	       CEN_pmem = 0; 
+	       WEN_pmem = 1; 
+	       acc_scan_file = $fscanf(acc_file,"%11b", A_pmem); 
+       end
+       else begin 
+	       CEN_pmem = 1;
+	       WEN_pmem = 1; 
+       end
+
+//       if (j>=0)  begin
+	acc = 1;
+//       end
+//       else begin
+//       	acc = 0;
+//       end       
+       
+
+       #0.5 clk = 1'b1;   
+   end
+
+    #0.5 clk = 1'b0;
+    CEN_pmem = 1;
+    WEN_pmem = 1;
+    acc = 0;
+    #0.5 clk = 1'b1; 
+
+    #0.5 clk = 1'b0; #0.5 clk = 1'b1;
+    #0.5 clk = 1'b0; #0.5 clk = 1'b1;
 
     out_scan_file = $fscanf(out_file,"%128b", answer); // reading from out file to answer
-    if (sfp_out == answer)
+    if (sfp_out == answer) begin
       $display("%2d-th output featuremap Data matched! :D", i); 
+    end
     else begin
       $display("%2d-th output featuremap Data ERROR!!", i); 
       $display("sfpout: %128b", sfp_out);
@@ -442,24 +496,7 @@ initial begin
     // end
    
  
-    // #0.5 clk = 1'b0; reset = 1;
-    // #0.5 clk = 1'b1;  
-    // #0.5 clk = 1'b0; reset = 0; 
-    // #0.5 clk = 1'b1;  
-
-    // for (j=0; j<len_kij+1; j=j+1) begin 
-
-    //   #0.5 clk = 1'b0;   
-    //     if (j<len_kij) begin CEN_pmem = 0; WEN_pmem = 1; acc_scan_file = $fscanf(acc_file,"%11b", A_pmem); end
-    //                    else  begin CEN_pmem = 1; WEN_pmem = 1; end
-
-    //     if (j>0)  acc = 1;  
-    //   #0.5 clk = 1'b1;   
-    // end
-
-    // #0.5 clk = 1'b0; acc = 0;
-    // #0.5 clk = 1'b1; 
-  end
+   end
 
 
   if (error == 0) begin
@@ -468,6 +505,7 @@ initial begin
 
   end
 
+  $fclose(out_file);
   $fclose(acc_file);
   //////////////////////////////////
 
@@ -499,12 +537,4 @@ always @ (posedge clk) begin
    load_q     <= load;
 end
 
-
-
-
-
 endmodule
-
-
-
-

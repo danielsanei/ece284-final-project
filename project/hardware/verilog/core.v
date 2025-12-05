@@ -52,7 +52,9 @@ module core #(
     //  - performs computation: L0 FIFO --> MAC Array --> OFIFO --> SFU
     // --------------------------------------------------------------------------
     
-    wire [psum_bw*col-1:0] pmem_din;
+    wire [psum_bw*col-1:0] ofifo_bus;
+   reg [psum_bw*col-1:0] pmem_q;                   // read data out of pmem
+ 
     
     corelet #(
         .bw (bw),
@@ -66,7 +68,7 @@ module core #(
         .D_xmem (xmem_q),               // write data from testbench into xmem
        
 	.pmem_q (pmem_q),
- 	.pmem_din (pmem_din),	
+ 	.ofifo_bus (ofifo_bus),	
 
 	.sfp_out (sfp_out),             // accumulate + ReLU result
         .ofifo_valid (ofifo_valid)
@@ -81,8 +83,7 @@ module core #(
 
     // output SRAM model
     reg [psum_bw*col-1:0] pmem [0:PMEM_DEPTH-1];    // storage array (each entry holds 8-channel output vector)
-    reg [psum_bw*col-1:0] pmem_q;                   // read data out of pmem
-
+    
     // synchronous read/write to pmem
     always @(posedge clk) begin
         // if pmem enabled this cycle
@@ -90,7 +91,7 @@ module core #(
             // if write enabled this cycle
             if (!WEN_pmem) begin
                 // store current SFU results
-                pmem[A_pmem] <= pmem_din;
+                pmem[A_pmem] <= ofifo_bus;
             end
             // otherwise, read enabled this cycle
             else begin

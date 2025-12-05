@@ -12,8 +12,8 @@ module corelet #(
     input [33:0] inst,                  // bundled instructions from testbench
     input [bw*row-1:0] D_xmem,          // write data from testbench into xmem
    
-    input [psum_bw*col-1:0] pmem_q;	//Data read from PMEM (For bring to SFU)
-    output [psum_bw*col-1:0] pmem_din	//Data to write back to PMEM
+    input [psum_bw*col-1:0] pmem_q,	//Data read from PMEM (For bring to SFU)
+    output [psum_bw*col-1:0] ofifo_bus,	//Data to write back to PMEM
 
     output [psum_bw*col-1:0] sfp_out,   // accumulate + ReLU result
     output ofifo_valid
@@ -112,13 +112,15 @@ module corelet #(
         .o_valid (ofifo_valid)
     );
 
+	assign ofifo_bus = ofifo_out;
+
     // --------------------------------------------------------------------------------
     // SFU
     // --------------------------------------------------------------------------------
     //  - special function unit: receives PSUMs from OFIFO, performs accumulate + ReLU
     // --------------------------------------------------------------------------------
     
-    wire [psum_bw*col-1:0] sfu_sum_out;
+    
 
     sfu #(
         .psum_bw (psum_bw),
@@ -127,12 +129,9 @@ module corelet #(
         .clk (clk),
         .reset (reset),
         .acc (acc),
-        .psum_in (ofifo_out),
-	.base_in(pmem_q),
-	.sum_out(sfu_sum_out),
+        .psum_in (pmem_q),
         .sfp_out (sfp_out)
     );
 
-	assign pmem_din = sfu_sum_out;
 
 endmodule
