@@ -364,19 +364,24 @@ initial begin
     A_pmem = kij * len_onij;  // get starting address (i.e. kij=0 -> 0, kij=1 -> 16, kij=2 -> 32, etc.)
     bypass = 1;               // avoid acc + ReLU, just store raw PSUM result
     #0.5 clk = 1'b1;
+    #0.5 clk = 1'b0;          // extra cycle to avoid reading in invalid or stale sfp_out value
+    #0.5 clk = 1'b1;
     t=0;
-    while (t < len_onij) begin // 2 cycle delay
+    // skip first value (duplicate)
+    while (t < len_onij + 1) begin // 2 cycle delay
       #0.5 clk = 1'b0; 
       if (ofifo_valid) begin
         ofifo_rd = 1;   // acc = 1;
-        CEN_pmem = 0;   // enable PMEM
-        WEN_pmem = 0;   // enable write on PMEM
-        if ( t > 0 ) A_pmem = A_pmem + 1;
-        t = t + 1;
+        if (t >= 1 && t < len_onij + 1) begin         // skip first value (duplicate)
+          CEN_pmem = 0;   // enable PMEM
+          WEN_pmem = 0;   // enable write on PMEM
+          if ( t > 1 ) A_pmem = A_pmem + 1;
+        end
         if (ofifo_valid && CEN_pmem == 0) begin
         $display("[KIJ=%0d, t=%0d] Writing to PMEM[%0d], sfp_out=%h", 
                 kij, t, A_pmem, sfp_out);
         end
+        t = t + 1;
       end
       else begin
         ofifo_rd = 0;
