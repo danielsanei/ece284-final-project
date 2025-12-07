@@ -7,6 +7,7 @@ module sfu #(
 ) (
     input clk,
     input reset,
+    input bypass,
     input acc,                                  // accumulation enable signal
     input signed [psum_bw*col-1:0] psum_in,     // PSUM inputs from OFIFO
 
@@ -41,7 +42,12 @@ module sfu #(
             	end
 	    end
        	    else begin
-		if (acc) begin
+		if (bypass) begin
+			for(i=0; i<col; i = i+1)begin
+				sfp_out[psum_bw*i +:psum_bw] <= psum_lane[i];
+			end 
+		end
+		else if (acc) begin
                 	for (i = 0; i < col; i = i + 1) begin
                     		accumulator[i] <= next_sum[i];
                 	end

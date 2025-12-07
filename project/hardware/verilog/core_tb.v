@@ -15,7 +15,7 @@ parameter len_nij = 36;
 reg clk = 0;
 reg reset = 1;
 
-wire [33:0] inst_q; 
+wire [34:0] inst_q; 
 
 reg [1:0]  inst_w_q = 0; 
 reg [bw*row-1:0] D_xmem_q = 0;
@@ -40,6 +40,8 @@ reg execute_q = 0;
 reg load_q = 0;
 reg acc_q = 0;
 reg acc = 0;
+reg bypass = 0;
+reg bypass_q = 0;
 
 reg [1:0]  inst_w; 
 reg [bw*row-1:0] D_xmem;
@@ -66,9 +68,9 @@ integer captured_data;
 integer t, i, j, k, kij;
 integer error;
 
-integer nij_idx;
+//integer nij_idx;
 
-
+assign inst_q[34] = bypass_q;
 assign inst_q[33] = acc_q;
 assign inst_q[32] = CEN_pmem_q;
 assign inst_q[31] = WEN_pmem_q;
@@ -350,13 +352,15 @@ initial begin
     // ofifo_rd = 1;
     // #0.5 clk = 1'b1;
     
-    nij_idx = 0;
-
+  //  nij_idx = 0;
+    $display("######## PMEM Storage ########");
     #0.5 clk = 1'b0;
-    ofifo_rd = 1;
-    CEN_pmem = 0;
-    WEN_pmem = 0;
+    acc = 0;
+    ofifo_rd = 0;
+//    CEN_pmem = 0;
+//    WEN_pmem = 0;
     A_pmem = kij * 16;
+    bypass = 1;
     #0.5 clk = 1'b1;
 
     t=0;
@@ -365,18 +369,31 @@ initial begin
       
       if (ofifo_valid) begin
         ofifo_rd = 1;
-	A_pmem = kij*16 + nij_idx;
-	nij_idx = nij_idx + 1;
+	CEN_pmem = 0;
+        WEN_pmem = 0;
+
+//	A_pmem = kij*16 + nij_idx;
+//	nij_idx = nij_idx + 1;
+	
+	A_pmem = kij*16 + t;
         t = t + 1;
+
+	if (ofifo_valid && (CEN_pmem == 0)) begin
+		$display("[KIJ=%0d, onij_idx=%0d] Writing to PMEM -> Addr:[%11b]", kij, t, A_pmem);
+	end
+
       end
       else begin
         ofifo_rd = 0;
+	CEN_pmem = 1;
+        WEN_pmem = 1;
+
       end
       
       #0.5 clk = 1'b1;
     end
 
-    #0.5 clk = 1'b0; ofifo_rd = 0; CEN_pmem = 1; WEN_pmem = 1; #0.5 clk = 1'b1;
+    #0.5 clk = 1'b0; ofifo_rd = 0; acc = 0; CEN_pmem = 1; WEN_pmem = 1; bypass = 0; #0.5 clk = 1'b1;
     
     /////////////////////////////////////
 
@@ -433,9 +450,11 @@ initial begin
 /*
     #0.5 clk = 1'b0; reset = 1;
     #0.5 clk = 1'b1;  
+     #0.5 clk = 1'b0;  #0.5 clk = 1'b1; 
+      #0.5 clk = 1'b0;  #0.5 clk = 1'b1; 
     #0.5 clk = 1'b0; reset = 0; 
-    #0.5 clk = 1'b1;*/  
-
+    #0.5 clk = 1'b1;  
+*/
 
    for (i = 0; i < len_onij; i = i + 1) begin
     for (j=0; j<len_kij; j=j+1) begin 
@@ -535,6 +554,7 @@ always @ (posedge clk) begin
    l0_wr_q    <= l0_wr ;
    execute_q  <= execute;
    load_q     <= load;
+   bypass_q   <= bypass;
 end
 
 endmodule
