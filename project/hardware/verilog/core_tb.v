@@ -414,7 +414,7 @@ initial begin
     CEN_pmem = 0; WEN_pmem = 1; A_pmem = k; bypass = 0;
     #0.5 clk = 1'b1;
     #0.5 clk = 1'b0; #0.5 clk = 1'b1;
-    $display("PMEM[%3d] = %h", k, core_instance.pmem[k]); // raw PSUM values in memory
+    $display("PMEM[%3d] = %h", k, core_instance.pmem_q); // raw PSUM values in memory
   end
   $display("=======================================================\n");
     
