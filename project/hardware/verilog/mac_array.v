@@ -1,6 +1,6 @@
 // Created by prof. Mingu Kang @VVIP Lab in UCSD ECE department
 // Please do not spread this code without permission 
-module mac_array (clk, reset, out_s, in_w, in_n, inst_w, valid);
+module mac_array (clk, reset, out_s, in_w, in_n, inst_w, valid, mode);
 
   parameter bw = 4;
   parameter psum_bw = 16;
@@ -8,6 +8,7 @@ module mac_array (clk, reset, out_s, in_w, in_n, inst_w, valid);
   parameter row = 8;
 
   input  clk, reset;
+  input mode;
   output [psum_bw*col-1:0] out_s;
   input  [row*bw-1:0] in_w; // inst[1]:execute, inst[0]: kernel loading
   input  [1:0] inst_w;
@@ -31,11 +32,12 @@ module mac_array (clk, reset, out_s, in_w, in_n, inst_w, valid);
         mac_row #(.bw(bw), .psum_bw(psum_bw)) mac_row_instance (
           .clk(clk),
           .reset(reset),
-    .in_w(in_w[bw*i-1:bw*(i-1)]),
-    .inst_w(inst_w_temp[2*i-1:2*(i-1)]),
-    .in_n(temp[psum_bw*col*i-1:psum_bw*col*(i-1)]),
-          .valid(valid_temp[col*i-1:col*(i-1)]),
-    .out_s(temp[psum_bw*col*(i+1)-1:psum_bw*col*(i)]));
+          .mode(mode),
+          .in_w(in_w[bw*i-1:bw*(i-1)]),
+          .inst_w(inst_w_temp[2*i-1:2*(i-1)]),
+          .in_n(temp[psum_bw*col*i-1:psum_bw*col*(i-1)]),
+                .valid(valid_temp[col*i-1:col*(i-1)]),
+          .out_s(temp[psum_bw*col*(i+1)-1:psum_bw*col*(i)]));
     end
   endgenerate
 

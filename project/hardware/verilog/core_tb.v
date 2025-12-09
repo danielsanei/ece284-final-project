@@ -15,7 +15,7 @@ parameter len_nij = 36;
 reg clk = 0;
 reg reset = 1;
 
-wire [34:0] inst_q; 
+wire [35:0] inst_q; 
 
 reg [1:0]  inst_w_q = 0; 
 reg [bw*row-1:0] D_xmem_q = 0;
@@ -359,31 +359,31 @@ initial begin
     #0.5 clk = 1'b0;
     acc = 0;                  // don't accumulate yet
     ofifo_rd = 1;             // read next PSUM, output to psum_in for SFU
-    // CEN_pmem = 0;             // enable PMEM
-    // WEN_pmem = 0;             // enable write on PMEM
+    CEN_pmem = 1;             // disable PMEM
+    WEN_pmem = 1;             // disable write on PMEM
     A_pmem = kij * len_onij;  // get starting address (i.e. kij=0 -> 0, kij=1 -> 16, kij=2 -> 32, etc.)
     bypass = 1;               // avoid acc + ReLU, just store raw PSUM result
     #0.5 clk = 1'b1;
     #0.5 clk = 1'b0;          // extra cycle to avoid reading in invalid or stale sfp_out value
     #0.5 clk = 1'b1;
     t=0;
-    // skip first value (duplicate)
-    while (t < len_onij + 1) begin // 2 cycle delay
+    while (t < len_onij + 1) begin // 1 cycle delay
       #0.5 clk = 1'b0; 
       if (ofifo_valid) begin
         ofifo_rd = 1;   // acc = 1;
-        if (t >= 1 && t < len_onij + 1) begin         // skip first value (duplicate)
+        if (t >= 1 && t < len_onij + 1) begin
           CEN_pmem = 0;   // enable PMEM
           WEN_pmem = 0;   // enable write on PMEM
-          if ( t > 1 ) A_pmem = A_pmem + 1;
-        end
-        if (ofifo_valid && CEN_pmem == 0) begin
+          if ( t == 1 ) A_pmem = kij * len_onij;
+          else A_pmem = A_pmem + 1;
         $display("[KIJ=%0d, t=%0d] Writing to PMEM[%0d], sfp_out=%h", 
                 kij, t, A_pmem, sfp_out);
-        end
-        t = t + 1;
+      end else begin
+        CEN_pmem = 1;
+        WEN_pmem = 1;
       end
-      else begin
+        t = t + 1;
+      end else begin
         ofifo_rd = 0;
         CEN_pmem = 1;
         WEN_pmem = 1;
@@ -405,15 +405,14 @@ initial begin
   end  // end of kij loop
 
 
-
-
   // After OFIFO Read section, before accumulation
   $display("\n========== PMEM Contents Before Accumulation ==========");
+  #0.5 clk = 1'b0; CEN_pmem = 0; WEN_pmem = 1; A_pmem = k; bypass = 0; #0.5 clk = 1'b1;
   for (k=0; k<144; k=k+1) begin
     #0.5 clk = 1'b0; 
     CEN_pmem = 0; WEN_pmem = 1; A_pmem = k; bypass = 0;
-    #0.5 clk = 1'b1;
-    #0.5 clk = 1'b0; #0.5 clk = 1'b1;
+    #0.5 clk = 1'b1; 
+    #0.5 clk = 1'b0; #0.5 clk = 1'b1;   // extra cycle
     $display("PMEM[%3d] = %h", k, core_instance.pmem_q); // raw PSUM values in memory
   end
   $display("=======================================================\n");
@@ -450,7 +449,7 @@ $display("############ Verification Start during accumulation #############");
 
 for (i=0; i<len_onij+1; i=i+1) begin    // 16 iterations
 
-  #0.5 clk = 1'b0; 
+  #0.5 clk = 1'b0;
   #0.5 clk = 1'b1; 
 
   if (i>0) begin

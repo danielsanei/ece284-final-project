@@ -9,7 +9,7 @@ module corelet #(
 ) (
     input clk,
     input reset,
-    input [34:0] inst,                  // bundled instructions from testbench
+    input [35:0] inst,                  // bundled instructions from testbench
     input [bw*row-1:0] D_xmem,          // write data from testbench into xmem
     input [psum_bw*col-1:0] D_pmem,     // read PSUMs from PMEM to SFU
     output [psum_bw*col-1:0] sfp_out,   // accumulate + ReLU result
@@ -17,6 +17,7 @@ module corelet #(
 );
 
     // extract individual instructions
+    wire mode = inst[35];       // 4-bit or 2-bit mode
     wire pmem_rd = inst[34];
     wire bypass = inst[34];
     wire acc = inst[33];        // SFU accumulator (1 = continue acc, 0 = ReLU + clear acc)
@@ -83,6 +84,7 @@ module corelet #(
     ) mac_array_inst (
         .clk (clk),
         .reset (reset),
+        .mode(mode),
         .out_s (mac_out),
         .in_w (l0_out),
         .in_n ({psum_bw*col{1'b0}}),

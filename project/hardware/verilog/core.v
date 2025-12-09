@@ -11,7 +11,7 @@ module core #(
 ) (
     input clk,
     input reset,
-    input [34:0] inst,                  // bundled instructions from testbench
+    input [35:0] inst,                  // bundled instructions from testbench
     input [bw*row-1:0] D_xmem,          // write data from testbench into xmem
     output ofifo_valid,
     output [psum_bw*col-1:0] sfp_out    // accumulate + ReLU result
@@ -24,12 +24,12 @@ module core #(
     wire [addr_width-1:0] A_pmem;       // output (PSUM/output) SRAM address
     wire CEN_pmem;                      // chip enable (0: read/write, idle) per cycle
     wire WEN_pmem;                      // write enable (0: write to pmem, 1: read or idle) per cycle
-    assign A_xmem = inst[17:7];
-    assign CEN_xmem = inst[19];
-    assign WEN_xmem = inst[18];
-    assign A_pmem = inst[30:20];
-    assign CEN_pmem = inst[32];
-    assign WEN_pmem = inst[31];
+    assign A_xmem = inst[18:8];     // shift this and all below by 1 bit (make room for mode)
+    assign CEN_xmem = inst[20];
+    assign WEN_xmem = inst[19];
+    assign A_pmem = inst[31:21];
+    assign CEN_pmem = inst[33];
+    assign WEN_pmem = inst[32];
 
     // --------------------------------------------------------------------------
     // Input Memory (xmem)
