@@ -15,6 +15,11 @@ module core #(
     input [bw*row-1:0] D_xmem,          // write data from testbench into xmem
     output ofifo_valid,
     output [psum_bw*col-1:0] sfp_out    // accumulate + ReLU result
+
+
+
+
+    
 );
 
     // extract individual instructions
@@ -51,6 +56,10 @@ module core #(
     // --------------------------------------------------------------------------
     //  - performs computation: L0 FIFO --> MAC Array --> OFIFO --> SFU
     // --------------------------------------------------------------------------
+   
+     reg [psum_bw*col-1:0] pmem_q;                   // read data out of pmem
+     wire [psum_bw*col-1:0] pmem_din;
+    
     corelet #(
         .bw (bw),
         .psum_bw (psum_bw),
@@ -63,8 +72,16 @@ module core #(
         .D_xmem (xmem_q),               // write data from testbench into xmem
         .D_pmem (pmem_q),               // read PSUMs from PMEM to SFU
         .sfp_out (sfp_out),             // accumulate + ReLU result
-        .ofifo_valid (ofifo_valid)
+        .ofifo_valid (ofifo_valid),
+	.pmem_din (pmem_din)
     );
+
+
+
+   
+
+
+
 
     // --------------------------------------------------------------------------
     // Output Memory (pmem)
@@ -75,17 +92,17 @@ module core #(
 
     // output SRAM model
     reg [psum_bw*col-1:0] pmem [0:PMEM_DEPTH-1];    // storage array (each entry holds 8-channel output vector)
-    reg [psum_bw*col-1:0] pmem_q;                   // read data out of pmem
-
+   
     // synchronous read/write to pmem
     always @(posedge clk) begin
         // if pmem enabled this cycle
         if (!CEN_pmem) begin
             // if write enabled this cycle
-            if (!WEN_pmem) begin
+            if (!WEN_pmem && (ofifo_valid == 1)) begin
                 // store current SFU results
-                pmem[A_pmem] <= sfp_out;
-            end
+//                pmem[A_pmem] <= sfp_out;
+		pmem[A_pmem] <= pmem_din;
+	    end
             // otherwise, read enabled this cycle
             else begin
                 pmem_q <= pmem[A_pmem];

@@ -60,6 +60,10 @@ reg [8*30:1] w_file_name;
 wire ofifo_valid;
 wire [col*psum_bw-1:0] sfp_out;
 
+
+
+
+
 integer x_file, x_scan_file ; // file_handler
 integer w_file, w_scan_file ; // file_handler
 integer acc_file, acc_scan_file ; // file_handler
@@ -85,13 +89,24 @@ assign inst_q[1]   = execute_q;
 assign inst_q[0]   = load_q; 
 
 
+
+
+
+
 core  #(.bw(bw), .col(col), .row(row)) core_instance (
 	.clk(clk), 
 	.inst(inst_q),
 	.ofifo_valid(ofifo_valid),
         .D_xmem(D_xmem_q), 
-        .sfp_out(sfp_out), 
+        .sfp_out(sfp_out),
+
+
+
+
+
+
 	.reset(reset)); 
+
 
 
 initial begin 
@@ -260,10 +275,17 @@ initial begin
     /////// Kernel loading to PEs ///////
     // 4bits change at a time with l0
     // skew shift in row+col len_kij loop for skewed inputs
-    for (t=0; t<col+row; t=t+1) begin
-      #0.5 clk = 1'b0; load = 1; l0_rd = 1;
-      #0.5 clk = 1'b1;
-    end
+    
+    //for (t=0; t<col+row; t=t+1) begin
+      for (t=0; t<row; t=t+1) begin
+         #0.5 clk = 1'b0; load = 1; l0_rd = 1;
+         #0.5 clk = 1'b1;
+      end
+
+      for (t=0; t<col; t=t+1) begin
+      	 #0.5 clk = 1'b0; load = 1; l0_rd = 0;
+	 #0.5 clk = 1'b1;
+      end
 
     #0.5 clk = 1'b0; load = 0; l0_rd = 0;
     #0.5 clk = 1'b1;
@@ -378,8 +400,7 @@ initial begin
           if ( t > 1 ) A_pmem = A_pmem + 1;
         end
         if (ofifo_valid && CEN_pmem == 0) begin
-        $display("[KIJ=%0d, t=%0d] Writing to PMEM[%0d], sfp_out=%h", 
-                kij, t, A_pmem, sfp_out);
+        $display("[KIJ=%0d, t=%0d] Writing to PMEM[%0d], value=%h", kij, t, A_pmem, core_instance.pmem_din);
         end
         t = t + 1;
       end
@@ -408,7 +429,7 @@ initial begin
 
 
   // After OFIFO Read section, before accumulation
-  $display("\n========== PMEM Contents Before Accumulation ==========");
+ $display("\n========== PMEM Contents Before Accumulation ==========");
   for (k=0; k<144; k=k+1) begin
     #0.5 clk = 1'b0; 
     CEN_pmem = 0; WEN_pmem = 1; A_pmem = k; bypass = 0;
@@ -417,7 +438,7 @@ initial begin
     $display("PMEM[%3d] = %h", k, core_instance.pmem_q); // raw PSUM values in memory
   end
   $display("=======================================================\n");
-    
+      
 
 
   // 1613 ns at this point
@@ -485,7 +506,7 @@ for (i=0; i<len_onij+1; i=i+1) begin    // 16 iterations
         WEN_pmem = 1; 
         acc_scan_file = $fscanf(acc_file,"%11b", A_pmem); 
         bypass = 0;
-        $display("  j=%2d: Setting up PMEM read, A_pmem=%3d, bypass=%b", j, A_pmem, bypass);
+        $display("j=%2d: Setting up PMEM read, A_pmem=%3d, bypass=%b", j, A_pmem, bypass);
       end
       else begin 
         CEN_pmem = 1; 
