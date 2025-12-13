@@ -47,7 +47,7 @@ module sfu #(
             // bypass (storing PSUMs from OFIFO into PMEM)
             if (bypass) begin
                 for (i=0; i < col; i = i +1) begin
-                    sfp_out[psum_bw*i +: psum_bw] <= psum_lanes[i];
+                    sfp_out[psum_bw*(col-i-1)  +: psum_bw] <= psum_lanes[i];
                 end
             end
             else if (acc) begin
@@ -59,10 +59,10 @@ module sfu #(
                 for (i=0; i < col; i = i +1) begin
                     // ReLU if neg
                     if (accumulator[i][psum_bw-1] == 1'b1) begin
-                        sfp_out[psum_bw*i +: psum_bw] <= {psum_bw{1'b0}};
+                        sfp_out[psum_bw*(col-i-1) +: psum_bw] <= {psum_bw{1'b0}};
                     end
                     else begin
-                        sfp_out[psum_bw*i +: psum_bw] <= accumulator[i];
+                        sfp_out[psum_bw*(col-i-1) +: psum_bw] <= accumulator[i];
                     end
 
                     // clear acc for next
