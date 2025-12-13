@@ -529,8 +529,8 @@ acc_scan_file = $fscanf(acc_file,"%11b", A_pmem);
       end
     #0.5 clk = 1'b1;
 
-      #0.5 clk = 1'b0; 
-      #0.5 clk = 1'b1; 
+ //     #0.5 clk = 1'b0; 
+ //     #0.5 clk = 1'b1; 
 
     // After clock edge, check what happened
     if (j >= 0 && j <= len_kij) begin
